@@ -1,11 +1,9 @@
-{{derives base}}
-
-{{#content}}
+{{#partial "content"}}
 <div>
     <h1>{{ category.fields.name }}</h1>
     <p>{{ category.fields.description }}</p>
     <div class="row products">
-        {% for product in products %}
+        {{#each products}}
         <div class="col-xs-12 col-sm-6 col-md-4">
 
             <div class="panel panel-default">
@@ -38,7 +36,9 @@
 
             </div>
         </div>
-        {% endfor %}
+        {{/each}}
     </div>
 </div>
-{{/content}}
+{{/partial}}
+
+{{> templates/base}}

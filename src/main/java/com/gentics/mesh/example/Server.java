@@ -88,16 +88,16 @@ public class Server extends AbstractVerticle {
 							routingContext.put("resolvedNode", null);
 							routingContext.response().putHeader(CONTENT_TYPE, "text/html");
 							routingContext.next();
+							return;
 						}
 						if ("vehicle".equals(schemaName)) {
 							routingContext.put("templateName", "productDetail.hbs");
-							routingContext.put("resolvedNode", null);
+							routingContext.put("product", webrootResponse.getNodeResponse());
 							routingContext.response().putHeader(CONTENT_TYPE, "text/html");
 							routingContext.next();
-						} else {
-							routingContext.response().setStatusCode(404).end("Not found");
+							return;
 						}
-
+						routingContext.response().setStatusCode(404).end("Not found");
 					}
 				});
 			}

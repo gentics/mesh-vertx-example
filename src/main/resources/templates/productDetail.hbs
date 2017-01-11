@@ -1,6 +1,4 @@
-{{ derives base }}
-
-{{#content}}
+{{#partial "content"}}
 <div>
 
     <h1>{{ product.fields.name }}</h1>
@@ -81,4 +79,6 @@
 
     </div>
 </div>
-{{/content}}
+{{/partial}}
+
+{{> templates/base}}
