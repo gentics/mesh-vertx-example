@@ -1,0 +1,14 @@
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a href="/" class="navbar-brand">Home</a>
+            </div>
+            <ul class="nav navbar-nav">
+                {{#each breadcrumb}}
+                    <li>
+                        <a href="{{this}}">{{@key}}</a>
+                    </li>
+                {{/each}}
+            </ul>
+        </div>
+    </nav>

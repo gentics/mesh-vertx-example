@@ -1,0 +1,84 @@
+{{ derives base }}
+
+{{#content}}
+<div>
+
+    <h1>{{ product.fields.name }}</h1>
+
+    <div class="row">
+
+        <div class="col-md-6">
+            <form name="productForm">
+
+                <div class="form-group">
+                    <label for="name">Product Name</label>
+                    <input type="text"
+                           class="form-control"
+                           id="name"
+                           name="name"
+                           placeholder="Name"
+                           required
+                           value="{{ product.fields.name}}">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea class="form-control"
+                              rows="7"
+                              id="description"
+                              name="description"
+                              required
+                              >{{ product.fields.description }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="sku">SKU</label>
+                    <input type="text"
+                           class="form-control"
+                           id="sku"
+                           name="sku"
+                           placeholder="SKU"
+                           value="{{ product.fields.SKU }}">
+                </div>
+
+                <div class="row">
+                    <div class="col-sm-4 form-group">
+                        <label for="price">Price</label>
+                        <input type="number"
+                               step="0.01"
+                               min="0"
+                               class="form-control"
+                               id="price"
+                               name="price"
+                               value="{{ product.fields.price }}">
+                    </div>
+                    <div class="col-sm-4 form-group">
+                        <label for="weight">Weight</label>
+                        <input type="number"
+                               class="form-control"
+                               min="0"
+                               id="weight"
+                               name="weight"
+                               value="{{ product.fields.weight }}">
+                    </div>
+                    <div class="col-sm-4 form-group">
+                        <label for="stock">Stock Level</label>
+                        <input type="number"
+                               min="0"
+                               class="form-control"
+                               id="stock"
+                               name="stock"
+                               value="{{ product.fields.stocklevel }}">
+                    </div>
+                </div>
+            </form>
+
+        </div>
+
+        <div class="col-md-6">
+            <img style="width: 100%;" class="img-thumbnail" src="{{ product.fields.vehicleImage.path }}"">
+        </div>
+
+    </div>
+</div>
+{{/content}}
