@@ -18,6 +18,7 @@ import com.gentics.mesh.query.impl.NavigationRequestParameter;
 import com.gentics.mesh.query.impl.NodeRequestParameter;
 import com.gentics.mesh.query.impl.NodeRequestParameter.LinkType;
 import com.gentics.mesh.rest.MeshRestClient;
+import com.gentics.mesh.util.URIUtils;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
@@ -71,7 +72,6 @@ public class Server extends AbstractVerticle {
 		Router router = Router.router(vertx);
 		router.routeWithRegex("/(.*)").handler(routingContext -> {
 			String path = routingContext.pathParam("param0");
-			System.out.println("Path: {" + path + "}");
 
 			if (path.equals("favicon.ico")) {
 				routingContext.response().setStatusCode(404).end("Not found");
@@ -206,6 +206,7 @@ public class Server extends AbstractVerticle {
 	 * @return
 	 */
 	private Single<WebRootResponse> resolvePath(String path) {
+		path = URIUtils.encodeFragment(path);
 		return toSingle(client.webroot("demo", "/" + path, new NodeRequestParameter().setExpandAll(true).setResolveLinks(LinkType.SHORT)));
 	}
 

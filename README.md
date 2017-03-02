@@ -16,7 +16,7 @@ cd mesh-vertx-example
 # Downlad Gentics Mesh from http://getmesh.io/Download and start it
 java -jar mesh-demo-0.6.xx.jar
 
-# Start the vert.x web server by running Server.java
+# Start the Vert.x web server by running Server.java
 
 # Access http://localhost:3000 in your browser
 ```
