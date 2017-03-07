@@ -6,7 +6,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 
 	<properties>
-		<vertx.version>3.4.0.Beta1</vertx.version>
+		<vertx.version>3.4.0</vertx.version>
 		<mesh.version>0.6.28</mesh.version>
 	</properties>
 
