@@ -73,11 +73,9 @@ public class Server extends AbstractVerticle {
 			return;
 		}
 
-		Single<Map<String, String>> breadcrumbObs = loadBreadcrumb();
-
 		// Render the welcome page for root page requests
 		if (path.isEmpty()) {
-			breadcrumbObs.subscribe(breadcrumb -> {
+			loadBreadcrumb().subscribe(breadcrumb -> {
 				rc.put("breadcrumb", breadcrumb);
 				rc.put("tmplName", "welcome.hbs");
 				rc.next();
@@ -88,6 +86,10 @@ public class Server extends AbstractVerticle {
 		if (log.isDebugEnabled()) {
 			log.debug("Handling request for path {" + path + "}");
 		}
+		handlePath(path, rc);
+	}
+
+	private void handlePath(String path, RoutingContext rc) {
 		// Resolve the node using the webroot API.
 		resolvePath(path).subscribe(response -> {
 
@@ -112,34 +114,33 @@ public class Server extends AbstractVerticle {
 			// utilized for those nodes.
 			String schemaName = response.getNodeResponse().getSchema().getName();
 
-			if ("category".equals(schemaName)) {
-				Single<JsonObject> childrenObs = loadCategoryChildren(response.getNodeResponse());
-				Single.zip(childrenObs, breadcrumbObs,
-						(children, breadcrumb) -> {
-							rc.put("tmplName", "productList.hbs");
-							rc.put("category", jsonObject);
-							rc.put("products", children);
-							rc.put("breadcrumb", breadcrumb);
-							rc.response().putHeader(CONTENT_TYPE, "text/html");
-							rc.next();
-							return null;
-						}).subscribe((e) -> {
-						}, error -> {
-							rc.fail(error);
-						});
-				return;
-			}
-
-			// Show the productDetail page for nodes of type vehicle
-			if ("vehicle".equals(schemaName)) {
-				breadcrumbObs.subscribe(nav -> {
-					rc.put("tmplName", "productDetail.hbs");
-					rc.put("product", jsonObject);
-					rc.put("breadcrumb", nav);
-					rc.response().putHeader(CONTENT_TYPE, "text/html");
-					rc.next();
-				});
-				return;
+			switch(schemaName) {
+				case "category":
+					Single<JsonObject> childrenObs = loadCategoryChildren(response.getNodeResponse());
+					Single.zip(childrenObs, loadBreadcrumb(),
+							(children, breadcrumb) -> {
+								rc.put("tmplName", "productList.hbs");
+								rc.put("category", jsonObject);
+								rc.put("products", children);
+								rc.put("breadcrumb", breadcrumb);
+								rc.response().putHeader(CONTENT_TYPE, "text/html");
+								rc.next();
+								return null;
+							}).subscribe((e) -> {
+							}, error -> {
+								rc.fail(error);
+							});
+					return;
+					// Show the productDetail page for nodes of type vehicle
+				case "vehicle":
+					loadBreadcrumb().subscribe(nav -> {
+						rc.put("tmplName", "productDetail.hbs");
+						rc.put("product", jsonObject);
+						rc.put("breadcrumb", nav);
+						rc.response().putHeader(CONTENT_TYPE, "text/html");
+						rc.next();
+					});
+					return;
 			}
 
 			// Return a 404 response for all other cases
@@ -185,12 +186,6 @@ public class Server extends AbstractVerticle {
 		});
 	}
 
-	/**
-	 * Load the child nodes of the given node.
-	 * 
-	 * @param response
-	 * @return
-	 */
 	private Single<JsonObject> loadCategoryChildren(NodeResponse response) {
 		return toSingle(client.findNodeChildren("demo", response.getUuid(),
 				new NodeRequestParameter().setExpandAll(true)
@@ -198,14 +193,9 @@ public class Server extends AbstractVerticle {
 								.map(children -> toJsonNode(children));
 	}
 
-	/**
-	 * Filter the navigation response to only include category nodes return a
-	 * map which can be used within the handlebars template.
-	 * 
-	 * @param response
-	 * @return
-	 */
 	private Map<String, String> filterNav(NavigationResponse response) {
+		// Filter the navigation response to only include category nodes return a
+		// map which can be used within the handlebars template.
 		Map<String, String> breadcrumb = new HashMap<>();
 		for (NavigationElement element : response.getRoot()
 				.getChildren()) {
@@ -235,12 +225,6 @@ public class Server extends AbstractVerticle {
 		return new JsonObject(json);
 	}
 
-	/**
-	 * Resolve the given path to a mesh node.
-	 * 
-	 * @param path
-	 * @return
-	 */
 	private Single<WebRootResponse> resolvePath(String path) {
 		path = URIUtils.encodeFragment(path);
 		// Load the node using the given path. The expandAll parameter is set to true
@@ -251,11 +235,6 @@ public class Server extends AbstractVerticle {
 						.setResolveLinks(LinkType.SHORT)));
 	}
 
-	/**
-	 * Load the breadcrumb data.
-	 * 
-	 * @return
-	 */
 	private Single<Map<String, String>> loadBreadcrumb() {
 		return toSingle(client.navroot("demo", "/",
 				new NavigationRequestParameter().setMaxDepth(1),
