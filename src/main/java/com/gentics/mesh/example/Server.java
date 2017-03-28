@@ -3,7 +3,7 @@ package com.gentics.mesh.example;
 import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
 import static io.vertx.ext.web.handler.TemplateHandler.DEFAULT_CONTENT_TYPE;
 import static io.vertx.ext.web.handler.TemplateHandler.DEFAULT_TEMPLATE_DIRECTORY;
-import static com.gentics.mesh.etc.config.AuthenticationOptions.AuthenticationMethod.BASIC_AUTH;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,14 +14,13 @@ import com.gentics.mesh.core.rest.navigation.NavigationResponse;
 import com.gentics.mesh.core.rest.node.NodeResponse;
 import com.gentics.mesh.core.rest.node.WebRootResponse;
 import com.gentics.mesh.json.JsonUtil;
-import com.gentics.mesh.query.impl.NavigationRequestParameter;
-import com.gentics.mesh.query.impl.NodeRequestParameter;
-import com.gentics.mesh.query.impl.NodeRequestParameter.LinkType;
-import com.gentics.mesh.rest.MeshRestClient;
+import com.gentics.mesh.parameter.LinkType;
+import com.gentics.mesh.parameter.client.NavigationParametersImpl;
+import com.gentics.mesh.parameter.client.NodeParametersImpl;
+import com.gentics.mesh.rest.client.MeshRestClient;
 import com.gentics.mesh.util.URIUtils;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
@@ -47,29 +46,13 @@ public class Server extends AbstractVerticle {
 		vertx.deployVerticle(new Server());
 	}
 
-	/**
-	 * Helper method that is used to transform the future into a single.
-	 * 
-	 * @param fut
-	 * @return
-	 */
-	private <T> Single<T> toSingle(Future<T> fut) {
-		return Single.create(sub -> {
-			fut.setHandler(rh -> {
-				if (rh.succeeded()) {
-					sub.onSuccess(rh.result());
-				} else {
-					sub.onError(rh.cause());
-				}
-			});
-		});
-	}
-
 	public void routeHandler(RoutingContext rc) {
 		String path = rc.pathParam("param0");
 
 		if (path.equals("favicon.ico")) {
-			rc.response().setStatusCode(404).end("Not found");
+			rc.response()
+					.setStatusCode(404)
+					.end("Not found");
 			return;
 		}
 
@@ -96,10 +79,14 @@ public class Server extends AbstractVerticle {
 			// The response contains binary data which means that the
 			// webroot API returned binary data for the specified path. We
 			// pass the binary data along and return it to the client.
-			if (response.isBinary()) {
-				String contentType = response.getDownloadResponse().getContentType();
-				rc.response().putHeader(CONTENT_TYPE, contentType);
-				rc.response().end(response.getDownloadResponse().getBuffer());
+			if (response.isDownload()) {
+				String contentType = response.getDownloadResponse()
+						.getContentType();
+				rc.response()
+						.putHeader(CONTENT_TYPE, contentType);
+				rc.response()
+						.end(response.getDownloadResponse()
+								.getBuffer());
 				// Note that we are not calling rc.next() which
 				// will prevent the execution of the template route handler.
 				return;
@@ -112,39 +99,45 @@ public class Server extends AbstractVerticle {
 			// We render different templates for each schema type. Category
 			// nodes show products and thus the productList template is
 			// utilized for those nodes.
-			String schemaName = response.getNodeResponse().getSchema().getName();
+			String schemaName = response.getNodeResponse()
+					.getSchema()
+					.getName();
 
-			switch(schemaName) {
-				case "category":
-					Single<JsonObject> childrenObs = loadCategoryChildren(response.getNodeResponse());
-					Single.zip(childrenObs, loadBreadcrumb(),
-							(children, breadcrumb) -> {
-								rc.put("tmplName", "productList.hbs");
-								rc.put("category", jsonObject);
-								rc.put("products", children);
-								rc.put("breadcrumb", breadcrumb);
-								rc.response().putHeader(CONTENT_TYPE, "text/html");
-								rc.next();
-								return null;
-							}).subscribe((e) -> {
-							}, error -> {
-								rc.fail(error);
-							});
-					return;
-					// Show the productDetail page for nodes of type vehicle
-				case "vehicle":
-					loadBreadcrumb().subscribe(nav -> {
-						rc.put("tmplName", "productDetail.hbs");
-						rc.put("product", jsonObject);
-						rc.put("breadcrumb", nav);
-						rc.response().putHeader(CONTENT_TYPE, "text/html");
-						rc.next();
-					});
-					return;
+			switch (schemaName) {
+			case "category":
+				Single<JsonObject> childrenObs = loadCategoryChildren(response.getNodeResponse());
+				Single.zip(childrenObs, loadBreadcrumb(), (children, breadcrumb) -> {
+					rc.put("tmplName", "productList.hbs");
+					rc.put("category", jsonObject);
+					rc.put("products", children);
+					rc.put("breadcrumb", breadcrumb);
+					rc.response()
+							.putHeader(CONTENT_TYPE, "text/html");
+					rc.next();
+					return null;
+				})
+						.subscribe((e) -> {
+						}, error -> {
+							rc.fail(error);
+						});
+				return;
+			// Show the productDetail page for nodes of type vehicle
+			case "vehicle":
+				loadBreadcrumb().subscribe(nav -> {
+					rc.put("tmplName", "productDetail.hbs");
+					rc.put("product", jsonObject);
+					rc.put("breadcrumb", nav);
+					rc.response()
+							.putHeader(CONTENT_TYPE, "text/html");
+					rc.next();
+				});
+				return;
 			}
 
 			// Return a 404 response for all other cases
-			rc.response().setStatusCode(404).end("Not found");
+			rc.response()
+					.setStatusCode(404)
+					.end("Not found");
 
 		});
 	}
@@ -153,33 +146,47 @@ public class Server extends AbstractVerticle {
 	public void start() throws Exception {
 		// Login to mesh on http://localhost:8080
 		log.info("Login into mesh..");
-		client = MeshRestClient.create("localhost", 8080, vertx, BASIC_AUTH);
+		client = MeshRestClient.create("localhost", 8080, vertx);
 		client.setLogin("webclient", "webclient");
-		client.login().doOnCompleted(() -> log.info("Login successful")).subscribe();
+		client.login()
+				.toCompletable()
+				.doOnCompleted(() -> log.info("Login successful"))
+				.subscribe();
 		engine = HandlebarsTemplateEngine.create();
 
-
 		Router router = Router.router(vertx);
-		router.routeWithRegex("/(.*)").handler(this::routeHandler).failureHandler(rc -> {
-			log.error("Error handling request {" + rc.request().absoluteURI() + "}", rc.failure());
-			rc.response().setStatusCode(500).end();
-		});
+		router.routeWithRegex("/(.*)")
+				.handler(this::routeHandler)
+				.failureHandler(rc -> {
+					log.error("Error handling request {" + rc.request()
+							.absoluteURI() + "}", rc.failure());
+					rc.response()
+							.setStatusCode(500)
+							.end();
+				});
 
 		// Finally use the previously set context data to render the templates
-		router.route().handler(this::templateHandler).failureHandler(rc -> {
-			log.error("Error while rendering template {" + rc.get("tmplName") + "}", rc.failure());
-			rc.response().setStatusCode(500).end();
-		});
+		router.route()
+				.handler(this::templateHandler)
+				.failureHandler(rc -> {
+					log.error("Error while rendering template {" + rc.get("tmplName") + "}", rc.failure());
+					rc.response()
+							.setStatusCode(500)
+							.end();
+				});
 
-		vertx.createHttpServer().requestHandler(router::accept).listen(3000);
+		vertx.createHttpServer()
+				.requestHandler(router::accept)
+				.listen(3000);
 	}
 
 	private void templateHandler(RoutingContext rc) {
 		String file = DEFAULT_TEMPLATE_DIRECTORY + File.separator + rc.get("tmplName");
 		engine.render(rc, file, res -> {
 			if (res.succeeded()) {
-				rc.response().putHeader(CONTENT_TYPE, DEFAULT_CONTENT_TYPE)
-				  .end(res.result());
+				rc.response()
+						.putHeader(CONTENT_TYPE, DEFAULT_CONTENT_TYPE)
+						.end(res.result());
 			} else {
 				rc.fail(res.cause());
 			}
@@ -187,18 +194,17 @@ public class Server extends AbstractVerticle {
 	}
 
 	private Single<JsonObject> loadCategoryChildren(NodeResponse response) {
-		return toSingle(client.findNodeChildren("demo", response.getUuid(),
-				new NodeRequestParameter().setExpandAll(true)
-						.setResolveLinks(LinkType.SHORT)))
-								.map(children -> toJsonNode(children));
+		return client.findNodeChildren("demo", response.getUuid(), new NodeParametersImpl().setExpandAll(true)
+				.setResolveLinks(LinkType.SHORT))
+				.toSingle()
+				.map(children -> toJsonNode(children));
 	}
 
 	private Map<String, String> filterNav(NavigationResponse response) {
 		// Filter the navigation response to only include category nodes return a
 		// map which can be used within the handlebars template.
 		Map<String, String> breadcrumb = new HashMap<>();
-		for (NavigationElement element : response.getRoot()
-				.getChildren()) {
+		for (NavigationElement element : response.getChildren()) {
 			if (element.getNode()
 					.getSchema()
 					.getName()
@@ -207,15 +213,15 @@ public class Server extends AbstractVerticle {
 						.getFields()
 						.getStringField("name")
 						.getString(),
-						element.getNode().getPath());
+						element.getNode()
+								.getPath());
 			}
 		}
 		return breadcrumb;
 	}
 
 	/**
-	 * Transform the given model into a JsonObject which can be used within the
-	 * handlebars template.
+	 * Transform the given model into a JsonObject which can be used within the handlebars template.
 	 * 
 	 * @param model
 	 * @return
@@ -230,15 +236,14 @@ public class Server extends AbstractVerticle {
 		// Load the node using the given path. The expandAll parameter is set to true
 		// in order to also expand nested references in the located content. Doing so 
 		// will avoid the need of further requests.  
-		return toSingle(client.webroot("demo", "/" + path,
-				new NodeRequestParameter().setExpandAll(true)
-						.setResolveLinks(LinkType.SHORT)));
+		return client.webroot("demo", "/" + path, new NodeParametersImpl().setExpandAll(true)
+				.setResolveLinks(LinkType.SHORT))
+				.toSingle();
 	}
 
 	private Single<Map<String, String>> loadBreadcrumb() {
-		return toSingle(client.navroot("demo", "/",
-				new NavigationRequestParameter().setMaxDepth(1),
-				new NodeRequestParameter().setResolveLinks(LinkType.SHORT)))
-						.map(response -> filterNav(response));
+		return client.navroot("demo", "/", new NavigationParametersImpl().setMaxDepth(1), new NodeParametersImpl().setResolveLinks(LinkType.SHORT))
+				.toSingle()
+				.map(response -> filterNav(response));
 	}
 }
