@@ -1,7 +1,7 @@
 {{#partial "content"}}
 <div>
 
-    <h1>{{ product.fields.name }}</h1>
+    <h1>{{ data.node.fields.name }}</h1>
 
     <div class="row">
 
@@ -16,7 +16,7 @@
                            name="name"
                            placeholder="Name"
                            required
-                           value="{{ product.fields.name}}">
+                           value="{{ data.node.fields.name}}">
                 </div>
 
                 <div class="form-group">
@@ -26,7 +26,7 @@
                               id="description"
                               name="description"
                               required
-                              >{{ product.fields.description }}</textarea>
+                              >{{ data.node.fields.description }}</textarea>
                 </div>
 
                 <div class="form-group">
@@ -36,7 +36,7 @@
                            id="sku"
                            name="sku"
                            placeholder="SKU"
-                           value="{{ product.fields.SKU }}">
+                           value="{{ data.node.fields.SKU }}">
                 </div>
 
                 <div class="row">
@@ -48,7 +48,7 @@
                                class="form-control"
                                id="price"
                                name="price"
-                               value="{{ product.fields.price }}">
+                               value="{{ data.node.fields.price }}">
                     </div>
                     <div class="col-sm-4 form-group">
                         <label for="weight">Weight</label>
@@ -66,7 +66,7 @@
                                class="form-control"
                                id="stock"
                                name="stock"
-                               value="{{ product.fields.stocklevel }}">
+                               value="{{ data.node.fields.stocklevel }}">
                     </div>
                 </div>
             </form>
@@ -74,11 +74,11 @@
         </div>
 
         <div class="col-md-6">
-            <img style="width: 100%;" class="img-thumbnail" src="{{ product.fields.vehicleImage.path }}"">
+            <img style="width: 100%;" class="img-thumbnail" src="{{ data.node.fields.image.path }}"">
         </div>
 
     </div>
 </div>
 {{/partial}}
 
-{{> templates/base}}
+{{> base}}

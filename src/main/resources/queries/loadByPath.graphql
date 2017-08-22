@@ -1,0 +1,68 @@
+{
+	# We need to load the children of the root node of the project. 
+	# Those nodes will be used to construct our top navigation.
+	project {
+		rootNode {
+			children {
+				elements {
+					# Include the schema so that we can filter our the images node. 
+					# This node should not be part of the top nav
+					schema {
+						name
+					}
+					path
+					fields {
+						... on category {
+							name
+						}
+					}
+				}
+			}
+		}
+	}
+	# Load the node with the specified path. This can either be a vehicle or a category.
+	node(path: "/PATH") {
+		uuid
+		# Include the schema so that we can switch between our two schemas. 
+		# E.g.: productDetail for vehicles and productList for categories nodes
+		schema { 
+			name 
+		}
+		fields {
+			... on category {
+				slug
+				description
+				name
+			}
+			... on vehicleImage {
+				name
+			}
+			...productInfo
+		}
+		# Include the child nodes for categories. 
+		# This information is used to list the vehicles in the productList view
+		products: children {
+			elements {
+				path
+				uuid
+				fields {
+					...productInfo
+				}
+			}
+		}
+	}
+}
+# We need to load the fields in two places. 
+# Thus it makes sense to use a fragment and only specify them once.
+fragment productInfo on vehicle {
+	slug
+	name
+	SKU
+	description
+	price
+	weight
+	stocklevel
+	image: vehicleImage {
+		path
+	}
+}

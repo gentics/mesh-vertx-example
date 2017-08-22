@@ -4,9 +4,9 @@
                 <a href="/" class="navbar-brand">Home</a>
             </div>
             <ul class="nav navbar-nav">
-                {{#each breadcrumb}}
+                {{#each data.project.rootNode.children.elements}}
                     <li>
-                        <a href="{{this}}">{{@key}}</a>
+                        <a href="{{ this.path }}">{{this.fields.name}}</a>
                     </li>
                 {{/each}}
             </ul>

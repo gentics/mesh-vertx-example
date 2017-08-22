@@ -1,10 +1,10 @@
 {{#partial "content"}}
 
 <div>
-    <h1>{{ category.fields.name }}</h1>
-    <p>{{ category.fields.description }}</p>
+    <h1>{{ data.node.fields.name }}</h1>
+    <p>{{ data.node.fields.description }}</p>
     <div class="row products">
-        {{#each products.data}}
+        {{#each data.node.products.elements}}
         <div class="col-xs-12 col-sm-6 col-md-4">
 
             <div class="panel panel-default">
@@ -15,7 +15,7 @@
                     </h3>
 
                     <a href="{{ this.path }}">
-                        <img style="height: 200px; width: 100%;" src="{{ this.fields.vehicleImage.path }}" class="img-thumbnail">
+                        <img style="height: 200px; width: 100%;" src="{{ this.fields.image.path }}" class="img-thumbnail">
                     </a>
 
                     <p>{{ this.fields.description }}</p>
@@ -42,4 +42,4 @@
 </div>
 {{/partial}}
 
-{{> templates/base}}
+{{> base}}
