@@ -1,4 +1,4 @@
-{
+query($path: String) {
 	# We need to load the children of the root node of the project. 
 	# Those nodes will be used to construct our top navigation.
 	project {
@@ -21,7 +21,7 @@
 		}
 	}
 	# Load the node with the specified path. This can either be a vehicle or a category.
-	node(path: "/PATH") {
+	node(path: $path) {
 		uuid
 		# Include the schema so that we can switch between our two schemas. 
 		# E.g.: productDetail for vehicles and productList for categories nodes

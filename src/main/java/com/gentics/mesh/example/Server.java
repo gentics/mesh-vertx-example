@@ -4,7 +4,6 @@ import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
 import static io.vertx.ext.web.handler.TemplateHandler.DEFAULT_CONTENT_TYPE;
 import static io.vertx.ext.web.handler.TemplateHandler.DEFAULT_TEMPLATE_DIRECTORY;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.IOUtils;
@@ -31,7 +30,7 @@ public class Server extends AbstractVerticle {
 
 	static {
 		// Enable if you want to edit the templates live
-		//System.setProperty("io.vertx.ext.web.TemplateEngine.disableCache", "true");
+		// System.setProperty("io.vertx.ext.web.TemplateEngine.disableCache", "true");
 	}
 
 	private static final Logger log = LoggerFactory.getLogger(Server.class);
@@ -62,7 +61,6 @@ public class Server extends AbstractVerticle {
 		// Render the welcome page for root page requests
 		if (path.isEmpty()) {
 			loadTopNav().subscribe(sub -> {
-				System.out.println(sub.getData().encodePrettily());
 				rc.put("data", sub.getData());
 				rc.put("tmplName", "welcome");
 				rc.next();
@@ -82,13 +80,11 @@ public class Server extends AbstractVerticle {
 	}
 
 	private void handlePage(String path, RoutingContext rc) {
-		System.out.println(path);
 		loadByPath(path).subscribe(sub -> {
 			JsonObject data = sub.getData();
 			// We render different templates for each schema type. Category
 			// nodes show products and thus the productList template is
 			// utilized for those nodes.
-			System.out.println(data.encodePrettily());
 			String schemaName = data.getJsonObject("node").getJsonObject("schema").getString("name");
 			switch (schemaName) {
 			case "category":
@@ -137,9 +133,10 @@ public class Server extends AbstractVerticle {
 
 	@Override
 	public void start() throws Exception {
-		// Login to mesh on http://localhost:8080
+		// Connect to Gentics Mesh on https://demo.getmesh.io or http://localhost:8080
 		log.info("Connecting to Gentics Mesh..");
 		client = MeshRestClient.create("demo.getmesh.io", 443, true, vertx);
+		//client = MeshRestClient.create("localhost", 80, false, vertx);
 
 		topNavQuery = getQuery("loadOnlyTopNav");
 		byPathQuery = getQuery("loadByPath");
@@ -157,13 +154,13 @@ public class Server extends AbstractVerticle {
 			rc.response().setStatusCode(500).end();
 		});
 
+		log.info("Server running on port 3000");
 		vertx.createHttpServer().requestHandler(router::accept).listen(3000);
 	}
 
 	private void templateHandler(RoutingContext rc) {
-		// String file = Utils.pathOffset(rc.normalisedPath(), rc);
 		String file = rc.get("tmplName");
-		engine.render(rc, new File(DEFAULT_TEMPLATE_DIRECTORY).getAbsolutePath(), Utils.normalizePath(file), res -> {
+		engine.render(rc, DEFAULT_TEMPLATE_DIRECTORY, Utils.normalizePath(file), res -> {
 			if (res.succeeded()) {
 				rc.response().putHeader(CONTENT_TYPE, DEFAULT_CONTENT_TYPE).end(res.result());
 			} else {
@@ -185,7 +182,7 @@ public class Server extends AbstractVerticle {
 	}
 
 	private Single<GraphQLResponse> loadByPath(String path) {
-		String query = byPathQuery.replaceAll("PATH", path);
-		return client.graphql("demo", new GraphQLRequest().setQuery(query)).toSingle();
+		String query = byPathQuery;
+		return client.graphql("demo", new GraphQLRequest().setQuery(query).setVariables(new JsonObject().put("path", path))).toSingle();
 	}
 }

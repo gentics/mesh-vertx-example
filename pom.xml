@@ -7,7 +7,7 @@
 
 	<properties>
 		<vertx.version>3.4.2</vertx.version>
-		<mesh.version>0.9.27-SNAPSHOT</mesh.version>
+		<mesh.version>0.9.27</mesh.version>
 	</properties>
 
 	<dependencies>
