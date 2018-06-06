@@ -6,8 +6,8 @@
 	<version>0.0.1-SNAPSHOT</version>
 
 	<properties>
-		<vertx.version>3.4.2</vertx.version>
-		<mesh.version>0.9.27</mesh.version>
+		<vertx.version>3.5.1</vertx.version>
+		<mesh.version>0.21.1</mesh.version>
 	</properties>
 
 	<dependencies>

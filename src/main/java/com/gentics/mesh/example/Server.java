@@ -12,8 +12,8 @@ import com.gentics.mesh.core.rest.graphql.GraphQLRequest;
 import com.gentics.mesh.core.rest.graphql.GraphQLResponse;
 import com.gentics.mesh.core.rest.node.WebRootResponse;
 import com.gentics.mesh.rest.client.MeshRestClient;
-import com.gentics.mesh.util.URIUtils;
 
+import io.reactivex.Single;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
@@ -24,7 +24,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.impl.Utils;
 import io.vertx.ext.web.templ.HandlebarsTemplateEngine;
-import rx.Single;
 
 public class Server extends AbstractVerticle {
 
@@ -128,7 +127,7 @@ public class Server extends AbstractVerticle {
 				// Return a 404 response for all other cases
 				rc.response().setStatusCode(404).end("Not found");
 			}
-		});
+		}, rc::fail);
 	}
 
 	@Override
@@ -170,10 +169,7 @@ public class Server extends AbstractVerticle {
 	}
 
 	private Single<WebRootResponse> resolvePath(String path) {
-		path = URIUtils.encodeFragment(path);
-		// Load the node using the given path. The expandAll parameter is set to true
-		// in order to also expand nested references in the located content. Doing so
-		// will avoid the need of further requests.
+		// Load the node using the given path.
 		return client.webroot("demo", "/" + path).toSingle();
 	}
 
