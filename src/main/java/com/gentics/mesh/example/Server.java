@@ -5,18 +5,24 @@ import static io.vertx.ext.web.handler.TemplateHandler.DEFAULT_CONTENT_TYPE;
 import static io.vertx.ext.web.handler.TemplateHandler.DEFAULT_TEMPLATE_DIRECTORY;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import org.apache.commons.io.IOUtils;
 
 import com.gentics.mesh.core.rest.graphql.GraphQLRequest;
 import com.gentics.mesh.core.rest.graphql.GraphQLResponse;
-import com.gentics.mesh.core.rest.node.WebRootResponse;
+import com.gentics.mesh.rest.client.MeshBinaryResponse;
+import com.gentics.mesh.rest.client.MeshResponse;
 import com.gentics.mesh.rest.client.MeshRestClient;
+import com.gentics.mesh.rest.client.MeshWebrootResponse;
+import com.google.common.net.HttpHeaders;
 
 import io.reactivex.Single;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -114,12 +120,26 @@ public class Server extends AbstractVerticle {
 		// Resolve image path using the webroot API.
 		resolvePath(path).subscribe(response -> {
 
+			MeshWebrootResponse meshResponse = response.getBody();
 			// The webroot API may have returned binary data for the specified path. We
 			// pass the binary data along and return it to the client.
-			if (response.isDownload()) {
-				String contentType = response.getDownloadResponse().getContentType();
+			if (meshResponse.isBinary()) {
+				MeshBinaryResponse binaryResponse = meshResponse.getBinaryResponse();
+				String contentType = binaryResponse.getContentType();
+				HttpServerResponse serverResponse = rc.response();
+
+				Optional<String> length = response.getHeader(HttpHeaders.CONTENT_LENGTH);
+
+				if (length.isPresent()) {
+					serverResponse.putHeader(HttpHeaders.CONTENT_LENGTH, length.get());
+				} else {
+					serverResponse.setChunked(true);
+				}
+
 				rc.response().putHeader(CONTENT_TYPE, contentType);
-				rc.response().end(response.getDownloadResponse().getBuffer());
+				binaryResponse.getFlowable()
+					.map(Buffer::buffer)
+					.subscribe(serverResponse::write, rc::fail, serverResponse::end);
 				// Note that we are not calling rc.next() which
 				// will prevent the execution of the template route handler.
 				return;
@@ -134,8 +154,8 @@ public class Server extends AbstractVerticle {
 	public void start() throws Exception {
 		// Connect to Gentics Mesh on https://demo.getmesh.io or http://localhost:8080
 		log.info("Connecting to Gentics Mesh..");
-		client = MeshRestClient.create("demo.getmesh.io", 443, true, vertx);
-		//client = MeshRestClient.create("localhost", 80, false, vertx);
+		client = MeshRestClient.create("demo.getmesh.io", 443, true);
+		// client = MeshRestClient.create("localhost", 80, false, vertx);
 
 		topNavQuery = getQuery("loadOnlyTopNav");
 		byPathQuery = getQuery("loadByPath");
@@ -168,9 +188,9 @@ public class Server extends AbstractVerticle {
 		});
 	}
 
-	private Single<WebRootResponse> resolvePath(String path) {
+	private Single<MeshResponse<MeshWebrootResponse>> resolvePath(String path) {
 		// Load the node using the given path.
-		return client.webroot("demo", "/" + path).toSingle();
+		return client.webroot("demo", "/" + path).getResponse();
 	}
 
 	private Single<GraphQLResponse> loadTopNav() {
