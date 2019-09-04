@@ -1,9 +1,11 @@
 package com.gentics.mesh.example;
 
 import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
+import static io.vertx.core.http.impl.HttpUtils.normalizePath;
 import static io.vertx.ext.web.handler.TemplateHandler.DEFAULT_CONTENT_TYPE;
 import static io.vertx.ext.web.handler.TemplateHandler.DEFAULT_TEMPLATE_DIRECTORY;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 
@@ -28,8 +30,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.impl.Utils;
-import io.vertx.ext.web.templ.HandlebarsTemplateEngine;
+import io.vertx.ext.web.templ.handlebars.HandlebarsTemplateEngine;
 
 public class Server extends AbstractVerticle {
 
@@ -159,7 +160,7 @@ public class Server extends AbstractVerticle {
 
 		topNavQuery = getQuery("loadOnlyTopNav");
 		byPathQuery = getQuery("loadByPath");
-		engine = HandlebarsTemplateEngine.create();
+		engine = HandlebarsTemplateEngine.create(vertx);
 
 		Router router = Router.router(vertx);
 		router.routeWithRegex("/(.*)").handler(this::routeHandler).failureHandler(rc -> {
@@ -173,13 +174,14 @@ public class Server extends AbstractVerticle {
 			rc.response().setStatusCode(500).end();
 		});
 
-		log.info("Server running on port 3000");
-		vertx.createHttpServer().requestHandler(router::accept).listen(3000);
+		int port = 3000;
+		log.info("Server running on port " + port);
+		vertx.createHttpServer().requestHandler(router).listen(port);
 	}
 
 	private void templateHandler(RoutingContext rc) {
 		String file = rc.get("tmplName");
-		engine.render(rc, DEFAULT_TEMPLATE_DIRECTORY, Utils.normalizePath(file), res -> {
+		engine.render(rc.data(), DEFAULT_TEMPLATE_DIRECTORY + "/" + normalizePath(file), res -> {
 			if (res.succeeded()) {
 				rc.response().putHeader(CONTENT_TYPE, DEFAULT_CONTENT_TYPE).end(res.result());
 			} else {
