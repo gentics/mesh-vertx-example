@@ -5,7 +5,6 @@ import static io.vertx.core.http.impl.HttpUtils.normalizePath;
 import static io.vertx.ext.web.handler.TemplateHandler.DEFAULT_CONTENT_TYPE;
 import static io.vertx.ext.web.handler.TemplateHandler.DEFAULT_TEMPLATE_DIRECTORY;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 
@@ -16,6 +15,7 @@ import com.gentics.mesh.core.rest.graphql.GraphQLResponse;
 import com.gentics.mesh.rest.client.MeshBinaryResponse;
 import com.gentics.mesh.rest.client.MeshResponse;
 import com.gentics.mesh.rest.client.MeshRestClient;
+import com.gentics.mesh.rest.client.MeshRestClientConfig;
 import com.gentics.mesh.rest.client.MeshWebrootResponse;
 import com.google.common.net.HttpHeaders;
 
@@ -24,6 +24,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -86,7 +87,7 @@ public class Server extends AbstractVerticle {
 	}
 
 	private void handlePage(String path, RoutingContext rc) {
-		loadByPath(path).subscribe(sub -> {
+		loadByPath(path, rc.request()).subscribe(sub -> {
 			JsonObject data = sub.getData();
 			// We render different templates for each schema type. Category
 			// nodes show products and thus the productList template is
@@ -155,7 +156,13 @@ public class Server extends AbstractVerticle {
 	public void start() throws Exception {
 		// Connect to Gentics Mesh on https://demo.getmesh.io or http://localhost:8080
 		log.info("Connecting to Gentics Mesh..");
-		client = MeshRestClient.create("demo.getmesh.io", 443, true);
+		MeshRestClientConfig clientConfig = new MeshRestClientConfig.Builder()
+		.setHost("demo.getmesh.io")
+		.setPort(443)
+		.setSsl(true)
+		.setBasePath("/api/v2")
+		.build();
+		client = MeshRestClient.create(clientConfig);
 		// client = MeshRestClient.create("localhost", 80, false, vertx);
 
 		topNavQuery = getQuery("loadOnlyTopNav");
@@ -168,13 +175,20 @@ public class Server extends AbstractVerticle {
 			rc.response().setStatusCode(500).end();
 		});
 
+		router.route().handler(rc -> {
+			String page = rc.request().getParam("page");
+			System.out.println(page);
+			rc.put("page", page);
+			rc.next();
+		});
+
 		// Finally use the previously set context data to render the templates
 		router.route().handler(this::templateHandler).failureHandler(rc -> {
 			log.error("Error while rendering template {" + rc.get("tmplName") + "}", rc.failure());
 			rc.response().setStatusCode(500).end();
 		});
 
-		int port = 3000;
+		int port = 3001;
 		log.info("Server running on port " + port);
 		vertx.createHttpServer().requestHandler(router).listen(port);
 	}
@@ -199,8 +213,14 @@ public class Server extends AbstractVerticle {
 		return client.graphql("demo", new GraphQLRequest().setQuery(topNavQuery)).toSingle();
 	}
 
-	private Single<GraphQLResponse> loadByPath(String path) {
+	private Single<GraphQLResponse> loadByPath(String path, HttpServerRequest request) {
 		String query = byPathQuery;
-		return client.graphql("demo", new GraphQLRequest().setQuery(query).setVariables(new JsonObject().put("path", path))).toSingle();
+		String pageParam = request.getParam("page");
+		long page = 1;
+		if (pageParam != null) {
+			page = Integer.parseInt(pageParam);
+		}
+		return client.graphql("demo", new GraphQLRequest().setQuery(query).setVariables(new JsonObject().put("path", path).put("page", page)))
+			.toSingle();
 	}
 }
