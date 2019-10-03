@@ -8,7 +8,7 @@
 
 	<properties>
 		<vertx.version>3.8.0</vertx.version>
-		<mesh.version>0.40.0</mesh.version>
+		<mesh.version>1.0.0</mesh.version>
 	</properties>
 
 	<dependencies>

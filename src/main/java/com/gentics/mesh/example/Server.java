@@ -5,7 +5,6 @@ import static io.vertx.core.http.impl.HttpUtils.normalizePath;
 import static io.vertx.ext.web.handler.TemplateHandler.DEFAULT_CONTENT_TYPE;
 import static io.vertx.ext.web.handler.TemplateHandler.DEFAULT_TEMPLATE_DIRECTORY;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 
